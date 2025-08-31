@@ -39,7 +39,7 @@ public class UserRegistrationRequest {
     private String roleName;
 
     // 學生專用欄位（當 roleName = STUDENT 時必填）
-    @Pattern(regexp = "^[A-Z]\\d{9}$", message = "學號格式不正確（例：B10901234）")
+    @Pattern(regexp = "^[A-Z]\\d{8}$", message = "學號格式不正確（例：B10901234）")
     private String studentId;
 
     // 教師專用欄位（當 roleName = TEACHER 時必填）
