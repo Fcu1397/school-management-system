@@ -1,19 +1,21 @@
 package com.example.schoolmanagementsystem.controller;
 
+import com.example.schoolmanagementsystem.dto.request.EnrollmentRequest;
 import com.example.schoolmanagementsystem.dto.response.ApiResponse;
 import com.example.schoolmanagementsystem.dto.response.CourseResponse;
 import com.example.schoolmanagementsystem.dto.response.EnrollmentResponse;
+import com.example.schoolmanagementsystem.dto.response.StudentResponse;
 import com.example.schoolmanagementsystem.model.Course;
-import com.example.schoolmanagementsystem.model.Enrollment;
 import com.example.schoolmanagementsystem.repository.CourseRepository;
-import com.example.schoolmanagementsystem.repository.EnrollmentRepository;
+import com.example.schoolmanagementsystem.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,8 +30,28 @@ import java.util.stream.Collectors;
 @Tag(name = "學生功能", description = "學生選課、查詢等相關操作")
 public class StudentController {
 
-    private final EnrollmentRepository enrollmentRepository;
+    private final StudentService studentService;
     private final CourseRepository courseRepository;
+
+    /**
+     * 查詢學生資訊
+     */
+    @GetMapping("/{studentId}")
+    @Operation(summary = "查詢學生資訊", description = "取得學生的詳細資訊和統計數據")
+    public ResponseEntity<ApiResponse<StudentResponse>> getStudentInfo(
+            @PathVariable String studentId) {
+
+        log.info("查詢學生資訊: {}", studentId);
+
+        try {
+            StudentResponse studentInfo = studentService.getStudentInfo(studentId);
+            return ResponseEntity.ok(ApiResponse.success("查詢成功", studentInfo));
+        } catch (Exception e) {
+            log.error("查詢學生資訊失敗: ", e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("STUDENT_NOT_FOUND", e.getMessage()));
+        }
+    }
 
     /**
      * 查詢可選課程
@@ -61,23 +83,37 @@ public class StudentController {
 
         log.info("查詢學生 {} 的選課記錄", studentId);
 
-        List<Enrollment> enrollments = enrollmentRepository.findByStudent_StudentId(studentId);
-        List<EnrollmentResponse> responses = enrollments.stream()
-                .map(enrollment -> EnrollmentResponse.builder()
-                        .enrollmentId(enrollment.getEnrollmentId())
-                        .studentId(enrollment.getStudent().getStudentId())
-                        .studentName(enrollment.getStudent().getStudentName())
-                        .classId(enrollment.getClassInfo().getClassId())
-                        .courseId(enrollment.getClassInfo().getCourse().getCourseId())
-                        .courseName(enrollment.getClassInfo().getCourse().getCourseName())
-                        .credits(enrollment.getClassInfo().getCourse().getCredits())
-                        .teacherName(enrollment.getClassInfo().getTeacher().getTeacherName())
-                        .semester(enrollment.getClassInfo().getSemester())
-                        .academicYear(enrollment.getClassInfo().getAcademicYear())
-                        .build())
-                .collect(Collectors.toList());
+        try {
+            List<EnrollmentResponse> enrollments = studentService.getEnrollments(studentId);
+            return ResponseEntity.ok(ApiResponse.success("查詢成功", enrollments));
+        } catch (Exception e) {
+            log.error("查詢選課記錄失敗: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("QUERY_FAILED", e.getMessage()));
+        }
+    }
 
-        return ResponseEntity.ok(ApiResponse.success("查詢成功", responses));
+    /**
+     * 查詢特定學期選課
+     */
+    @GetMapping("/enrollments/{studentId}/semester")
+    @Operation(summary = "查詢學期選課", description = "查詢特定學期的選課記錄")
+    public ResponseEntity<ApiResponse<List<EnrollmentResponse>>> getEnrollmentsBySemester(
+            @PathVariable String studentId,
+            @RequestParam Integer academicYear,
+            @RequestParam String semester) {
+
+        log.info("查詢學生 {} 在 {} 年 {} 的選課記錄", studentId, academicYear, semester);
+
+        try {
+            List<EnrollmentResponse> enrollments =
+                    studentService.getEnrollmentsBySemester(studentId, academicYear, semester);
+            return ResponseEntity.ok(ApiResponse.success("查詢成功", enrollments));
+        } catch (Exception e) {
+            log.error("查詢學期選課失敗: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("QUERY_FAILED", e.getMessage()));
+        }
     }
 
     /**
@@ -85,22 +121,23 @@ public class StudentController {
      */
     @PostMapping("/enroll")
     @Operation(summary = "選課", description = "學生選修課程")
-    public ResponseEntity<ApiResponse<String>> enrollCourse(
-            @RequestParam String studentId,
-            @RequestParam Integer classId) {
+    public ResponseEntity<ApiResponse<EnrollmentResponse>> enrollCourse(
+            @Valid @RequestBody EnrollmentRequest request) {
 
-        log.info("學生 {} 選修班級 {}", studentId, classId);
+        log.info("學生 {} 選修班級 {}", request.getStudentId(), request.getClassId());
 
-        // 檢查是否已選修
-        boolean exists = enrollmentRepository.existsByStudent_StudentIdAndClassInfo_ClassId(studentId, classId);
-        if (exists) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("ALREADY_ENROLLED", "您已選修此課程"));
+        try {
+            EnrollmentResponse enrollment = studentService.enrollInClass(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("選課成功", enrollment));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("ENROLLMENT_FAILED", e.getMessage()));
+        } catch (Exception e) {
+            log.error("選課失敗: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("SYSTEM_ERROR", "選課失敗，請稍後再試"));
         }
-
-        // TODO: 實作選課邏輯（檢查人數上限、衝堂等）
-
-        return ResponseEntity.ok(ApiResponse.success("選課成功", "已成功選修課程"));
     }
 
     /**
@@ -114,8 +151,45 @@ public class StudentController {
 
         log.info("學生 {} 退選班級 {}", studentId, classId);
 
-        // TODO: 實作退選邏輯
+        try {
+            boolean success = studentService.dropClass(studentId, classId);
+            if (success) {
+                return ResponseEntity.ok(ApiResponse.success("退選成功", "已成功退選課程"));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("DROP_FAILED", "退選失敗"));
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("DROP_FAILED", e.getMessage()));
+        } catch (Exception e) {
+            log.error("退選失敗: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("SYSTEM_ERROR", "退選失敗，請稍後再試"));
+        }
+    }
 
-        return ResponseEntity.ok(ApiResponse.success("退選成功", "已成功退選課程"));
+    /**
+     * 檢查衝堂
+     */
+    @GetMapping("/check-conflict")
+    @Operation(summary = "檢查衝堂", description = "檢查選課是否有時間衝突")
+    public ResponseEntity<ApiResponse<Boolean>> checkScheduleConflict(
+            @RequestParam String studentId,
+            @RequestParam Integer classId) {
+
+        log.info("檢查學生 {} 選修班級 {} 是否衝堂", studentId, classId);
+
+        try {
+            boolean hasConflict = studentService.hasScheduleConflict(studentId, classId);
+            return ResponseEntity.ok(ApiResponse.success(
+                    hasConflict ? "有時間衝突" : "無時間衝突",
+                    hasConflict
+            ));
+        } catch (Exception e) {
+            log.error("檢查衝堂失敗: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("CHECK_FAILED", e.getMessage()));
+        }
     }
 }
