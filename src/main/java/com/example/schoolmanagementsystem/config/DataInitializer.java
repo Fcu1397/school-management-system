@@ -7,7 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 資料初始化器
@@ -23,10 +26,15 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final TeacherRepository teacherRepository;
     private final ClassInfoRepository classInfoRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final GradeRepository gradeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
+        
+
         log.info("開始初始化資料...");
 
         // 初始化角色

@@ -33,6 +33,7 @@ public class StudentServiceImpl implements StudentService {
     private final AuditLogRepository auditLogRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public StudentResponse getStudentInfo(String studentId) {
         log.info("查詢學生資訊: {}", studentId);
 
@@ -180,6 +181,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollments(String studentId) {
         log.info("查詢學生 {} 的所有選課記錄", studentId);
 
@@ -191,6 +193,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentResponse> getEnrollmentsBySemester(String studentId, Integer academicYear, String semester) {
         log.info("查詢學生 {} 在 {} 年 {} 的選課記錄", studentId, academicYear, semester);
 
@@ -208,6 +211,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public boolean hasScheduleConflict(String studentId, Integer classId) {
         log.debug("檢查學生 {} 選修班級 {} 是否有衝堂", studentId, classId);
 

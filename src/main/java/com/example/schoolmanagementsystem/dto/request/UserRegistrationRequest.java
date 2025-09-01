@@ -1,5 +1,6 @@
 package com.example.schoolmanagementsystem.dto.request;
 
+import com.example.schoolmanagementsystem.validation.ValidRegistrationRole;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidRegistrationRole // 使用自訂驗證
 public class UserRegistrationRequest {
 
     @NotBlank(message = "Email 不可為空")
@@ -38,12 +40,10 @@ public class UserRegistrationRequest {
             message = "角色必須是 STUDENT、TEACHER 或 ADMIN")
     private String roleName;
 
-    // 學生專用欄位（當 roleName = STUDENT 時必填）
-    @Pattern(regexp = "^[A-Z]\\d{8}$", message = "學號格式不正確（例：B10901234）")
+    // 學生專用欄位（驗證邏輯移至 @ValidRegistrationRole）
     private String studentId;
 
-    // 教師專用欄位（當 roleName = TEACHER 時必填）
-    @Pattern(regexp = "^T\\d{6}$", message = "教職員編號格式不正確（例：T123456）")
+    // 教師專用欄位（驗證邏輯移至 @ValidRegistrationRole）
     private String teacherId;
 
     // 部門資訊（選填）

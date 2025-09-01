@@ -54,6 +54,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",        // 認證相關
                                 "/api/test/**",        // 測試端點
+                                "/api/student/**",     // 學生功能 (暫時開放)
+                                "/api/courses/**",     // 課程功能 (暫時開放)
                                 "/swagger-ui/**",      // Swagger UI
                                 "/swagger-ui.html",
                                 "/api-docs/**",        // API 文件
@@ -61,10 +63,6 @@ public class SecurityConfig {
                                 "/error",              // 錯誤頁面
                                 "/favicon.ico"         // 網站圖標
                         ).permitAll()
-
-                        // 學生專用路徑
-                        .requestMatchers("/api/student/**")
-                        .hasAnyRole("STUDENT", "ADMIN")
 
                         // 教師專用路徑
                         .requestMatchers("/api/teacher/**")
