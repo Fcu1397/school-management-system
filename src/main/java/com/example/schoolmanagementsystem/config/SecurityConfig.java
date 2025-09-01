@@ -56,6 +56,7 @@ public class SecurityConfig {
                                 "/api/test/**",        // 測試端點
                                 "/api/student/**",     // 學生功能 (暫時開放)
                                 "/api/courses/**",     // 課程功能 (暫時開放)
+                                "/api/profile/**",     // 個人資料功能 (暫時開放)
                                 "/swagger-ui/**",      // Swagger UI
                                 "/swagger-ui.html",
                                 "/api-docs/**",        // API 文件
